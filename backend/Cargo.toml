@@ -2,8 +2,13 @@
 name = "backend"
 version = "0.1.0"
 edition = "2024"
+authors = ["Thomas Stätter <thomas.staetter@gmail.com>"]
 
 [dependencies]
-axum = "0.8.9"
-openapiv3 = "2.2.0"
-serde_json = "1.0.149"
+axum = "0.8"
+openapiv3 = "2"
+reqwest = "0.13"
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
