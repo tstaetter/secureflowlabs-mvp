@@ -26,3 +26,5 @@ vite.config.ts.timestamp-*
 .vscode
 .zed
 .idea
+
+.env
