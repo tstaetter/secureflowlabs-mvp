@@ -1,0 +1,20 @@
+[profile.default]
+# Fail fast on first failure during TDD cycles
+fail-fast = true
+
+# Show timing for slow tests
+slow-timeout = { period = "2s" }
+
+# Standard test status level
+status-level = "all"
+
+[profile.ci]
+# CI profile: more verbose, no fail-fast (collect all failures)
+fail-fast = false
+status-level = "all"
+
+[profile.tdd]
+# Optimized for TDD red-green-refactor workflow
+# inherits from default, but with additional tweaks
+fail-fast = true
+status-level = "fail"

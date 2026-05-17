@@ -1,42 +1,97 @@
-# sv
+# Frontend
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+Web client for the MVP application.
 
-## Creating a project
+## Tech Stack
 
-If you're seeing this, you've probably already done this step. Congrats!
+| Component    | Technology                                         |
+| ------------ | -------------------------------------------------- |
+| Framework    | [SvelteKit](https://svelte.dev/docs/kit) 2 (Svelte 5) |
+| Language     | [TypeScript](https://www.typescriptlang.org/) 6    |
+| Styling      | [Tailwind CSS](https://tailwindcss.com/) v4        |
+| Build Tool   | [Vite](https://vite.dev/) 8                        |
+| Runtime      | [Deno](https://deno.com/)                          |
+| Unit Testing | [Vitest](https://vitest.dev/) 4                    |
+| Browser Test | [Playwright](https://playwright.dev/) (Chromium)   |
+| Linting      | [ESLint](https://eslint.org/) + [Prettier](https://prettier.io/) |
 
-```sh
-# create a new project
-npx sv create my-app
-```
+## Prerequisites
 
-To recreate this project with the same configuration:
+- [Deno](https://deno.com/) 2 or later
 
-```sh
-# recreate this project
-deno run npm:sv@0.15.3 create --template minimal --types ts --add prettier eslint vitest="usages:unit,component" mcp="ide:other+setup:local" --install deno frontend
-```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
-
-## Building
-
-To create a production version of your app:
+## Getting Started
 
 ```sh
-npm run build
+cd frontend
+
+# Install dependencies
+deno install
+
+# Start dev server
+deno task dev
 ```
 
-You can preview the production build with `npm run preview`.
+The dev server starts at `http://localhost:5173` and proxies API requests to the backend at `http://localhost:3000`.
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+## Project Structure
+
+```
+frontend/
+├── src/
+│   ├── app.html             # HTML shell
+│   ├── app.css              # Global styles (Tailwind import)
+│   ├── app.d.ts             # TypeScript declarations
+│   ├── lib/                 # Shared components & utilities
+│   │   ├── assets/          # Static assets (images, icons)
+│   │   └── server/          # Server-only code
+│   └── routes/              # File-based routes
+│       ├── +layout.svelte   # Root layout
+│       └── +page.svelte     # Home page
+├── static/                  # Static files served as-is
+├── tests/                   # Integration tests
+├── package.json
+├── svelte.config.js
+├── vite.config.ts
+├── tsconfig.json
+├── README.md
+└── AGENTS.md
+```
+
+## Testing
+
+Tests are organized into two [Vitest projects](https://vitest.dev/guide/projects) configured in `vite.config.ts`:
+
+| Project  | Environment | Scope                                              |
+| -------- | ----------- | -------------------------------------------------- |
+| `client` | Browser (Chromium via Playwright) | Svelte components: `*.svelte.{test,spec}.{js,ts}` |
+| `server` | Node.js     | Logic, utilities: `*.{test,spec}.{js,ts}`          |
+
+```sh
+# Run all tests (both projects)
+deno task test
+
+# Run tests in watch mode (TDD)
+deno task test:unit
+
+# Run a specific test file
+deno run -A npm:vitest run src/lib/greet.spec.ts
+```
+
+Component tests use [`vitest-browser-svelte`](https://www.npmjs.com/package/vitest-browser-svelte) to render Svelte components in the browser and assert against the rendered DOM.
+
+## Useful Commands
+
+| Command              | Description                     |
+| -------------------- | ------------------------------- |
+| `deno task dev`        | Start development server        |
+| `deno task build`      | Build for production            |
+| `deno task preview`    | Preview production build        |
+| `deno task check`      | Type-check the project          |
+| `deno task lint`       | Lint (Prettier + ESLint)        |
+| `deno task format`     | Format code with Prettier       |
+| `deno task test:unit`  | Run tests in watch mode         |
+| `deno task test`       | Run all tests once              |
+
+## API Proxy
+
+During development, the Vite dev server proxies `/api` requests to the backend server. Configure the target in `vite.config.ts` under `server.proxy`.
