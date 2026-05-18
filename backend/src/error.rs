@@ -10,6 +10,16 @@ pub enum AppError {
     MongoDb(#[from] mongodb::error::Error),
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
+    #[error("DB error: {0}")]
+    Db(#[from] DbError),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum DbError {
+    #[error("Failed to connect to database: {0}")]
+    Connection(#[from] mongodb::error::Error),
+    #[error("Failed to insert new doc")]
+    Insertion(String),
 }
 
 impl IntoResponse for AppError {
@@ -17,6 +27,7 @@ impl IntoResponse for AppError {
         match self {
             AppError::MongoDb(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
             AppError::Io(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
+            AppError::Db(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
         }
         .into_response()
     }

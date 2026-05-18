@@ -53,7 +53,8 @@ impl OpenApiNormalizer {
         op: Operation,
     ) -> NormalizedEndpoint {
         NormalizedEndpoint {
-            id: format!("{}:{}:{}", provider, format!("{:?}", method), path),
+            id: None,
+            internal_id: format!("{}:{}:{}", provider, format!("{:?}", method), path),
             provider: provider.to_string(),
             method,
             path: path.to_string(),

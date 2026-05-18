@@ -1,6 +1,5 @@
-use backend::app;
+use backend::{app, AppDatabase};
 use backend::{AppResult, AppState};
-use mongodb::Client;
 use tokio::signal;
 use tracing::info;
 use tracing_subscriber::prelude::*;
@@ -14,7 +13,7 @@ async fn main() -> AppResult<()> {
     init_tracing();
 
     // Database setup
-    let db = init_db_connection().await?;
+    let db = AppDatabase::try_new().await?;
     // Create app state
     let state = AppState { db: Some(db) };
     let port = std::env::var("PORT").unwrap_or_else(|_| "8000".to_string());
@@ -49,18 +48,6 @@ fn init_tracing() {
         .init();
 
     info!("Tracing configured");
-}
-
-/// Initialize MongoDB connection
-async fn init_db_connection() -> AppResult<mongodb::Database> {
-    let mongo_uri =
-        std::env::var("MONGODB_URI").unwrap_or_else(|_| "mongodb://localhost:27017".to_string());
-    let mongo_db = std::env::var("MONGODB_NAME").unwrap_or_else(|_| "filez_zone_dev".to_string());
-    let client = Client::with_uri_str(&mongo_uri).await?;
-
-    info!("Connected to MongoDB on {}", mongo_uri);
-
-    Ok(client.database(&mongo_db))
 }
 
 /// Returns a future that completes when a shutdown signal is received.

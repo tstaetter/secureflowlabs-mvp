@@ -1,6 +1,8 @@
-use bson::oid::ObjectId;
+use crate::db::Model;
+use mongodb::bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use validator::Validate;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SchemaSource {
@@ -10,7 +12,7 @@ pub enum SchemaSource {
     OpenApiYaml,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 #[serde(rename_all = "camelCase")]
 pub struct RawSchema {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
@@ -19,4 +21,15 @@ pub struct RawSchema {
     pub source: SchemaSource,
     pub version: String,
     pub spec: Value,
+}
+
+impl Model for RawSchema {
+    #[cfg(test)]
+    const COLLECTION: &'static str = "test_schemas";
+    #[cfg(not(test))]
+    const COLLECTION: &'static str = "schemas";
+
+    fn get_id(&self) -> ObjectId {
+        self.id.unwrap_or_default()
+    }
 }
