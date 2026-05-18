@@ -19,7 +19,7 @@ use openapiv3::OpenAPI;
 ///
 /// # Example
 /// ```rust
-/// use your_crate::{get_raw_spec, SpecParsingResult, OpenAPI};
+/// use backend::{get_raw_spec, SpecParsingResult, OpenAPI};
 ///
 /// #[tokio::main]
 /// async fn main() -> SpecParsingResult<()> {
@@ -32,7 +32,9 @@ use openapiv3::OpenAPI;
 ///
 /// # Note
 /// This function expects the file to be in JSON format containing a valid OpenAPI specification.
-async fn get_raw_spec(path: &str) -> SpecParsingResult<OpenAPI> {
+pub async fn get_raw_spec(path: &str) -> SpecParsingResult<OpenAPI> {
+    tracing::info!("Getting spec from {}", path);
+
     let content = std::fs::read_to_string(path)?;
     let openapi: OpenAPI = serde_json::from_str(&content)?;
 

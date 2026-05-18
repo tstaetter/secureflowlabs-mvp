@@ -7,7 +7,8 @@
 //! When MongoDB is not reachable the tests that require it are skipped
 //! gracefully instead of failing.
 
-use backend::db::{AppDatabase, Model, RawSchema, SchemaSource};
+use backend::db::{AppDatabase, Capability, Model, NormalizedEndpoint, RawSchema, SchemaSource};
+use backend::pipeline::run_pipeline;
 use mongodb::Client;
 use mongodb::Collection;
 use mongodb::bson::doc;
@@ -250,4 +251,91 @@ async fn insert_fails_when_db_unreachable() {
         result.is_err(),
         "insert_one must fail when the database host is unreachable"
     );
+}
+
+// ── Full pipeline integration ───────────────────────────────────────────────
+
+/// Run the full ingestion pipeline against a real database and verify every
+/// stage writes to the correct collections.
+#[tokio::test]
+async fn run_pipeline_end_to_end() {
+    let db = match try_connect().await {
+        Some(db) => db,
+        None => {
+            eprintln!("SKIP: MongoDB not reachable");
+            return;
+        }
+    };
+
+    let spec_json = r#"{
+        "openapi": "3.0.3",
+        "info": { "title": "Pipeline Integration Test", "version": "0.1" },
+        "paths": {
+            "/v1/items": {
+                "post": { "summary": "Create item", "responses": { "200": { "description": "ok" } } },
+                "get":  { "summary": "List items",  "responses": { "200": { "description": "ok" } } }
+            }
+        }
+    }"#;
+
+    // Write spec to a temp file so run_pipeline can read it from disk.
+    let tmp_dir = std::path::PathBuf::from("tmp/uploads");
+    tokio::fs::create_dir_all(&tmp_dir)
+        .await
+        .expect("create tmp dir");
+    let file_path = tmp_dir.join("pipeline-integration-test.json");
+    tokio::fs::write(&file_path, spec_json)
+        .await
+        .expect("write temp spec");
+
+    let provider = "Pipeline Integration Test";
+
+    // Clean up any remnants from a previous run.
+    purge_by_provider(&db, provider).await;
+
+    // ── Act ────────────────────────────────────────────────────────────
+    let result = run_pipeline(&db, file_path.to_str().unwrap())
+        .await
+        .expect("pipeline must succeed");
+
+    // ── Assert ─────────────────────────────────────────────────────────
+    assert_eq!(result.provider, provider);
+    assert_eq!(result.version, "0.1");
+    assert_eq!(result.endpoints_created, 2); // POST + GET on /v1/items
+    assert_eq!(result.capabilities_created, 2);
+
+    // Verify RawSchema was persisted.
+    {
+        let collection: Collection<RawSchema> = db.database.collection(RawSchema::COLLECTION);
+        let count = collection
+            .count_documents(doc! { "provider": provider })
+            .await
+            .expect("count raw schemas");
+        assert_eq!(count, 1, "exactly one RawSchema must be persisted");
+    }
+
+    // Verify NormalizedEndpoints were persisted.
+    {
+        let collection: Collection<NormalizedEndpoint> =
+            db.database.collection(NormalizedEndpoint::COLLECTION);
+        let count = collection
+            .count_documents(doc! { "provider": provider })
+            .await
+            .expect("count endpoints");
+        assert_eq!(count, 2, "exactly two endpoints must be persisted");
+    }
+
+    // Verify Capabilities were persisted.
+    {
+        let collection: Collection<Capability> = db.database.collection(Capability::COLLECTION);
+        let count = collection
+            .count_documents(doc! { "tags": provider })
+            .await
+            .expect("count capabilities");
+        assert_eq!(count, 2, "exactly two capabilities must be persisted");
+    }
+
+    // ── Cleanup ────────────────────────────────────────────────────────
+    purge_by_provider(&db, provider).await;
+    let _ = tokio::fs::remove_file(&file_path).await;
 }

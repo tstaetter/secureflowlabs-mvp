@@ -2,11 +2,12 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::{AppError, AppResult, AppState, UploadError};
+use crate::pipeline::run_pipeline;
+use crate::{AppError, AppResult, AppState, PipelineResult, UploadError};
 use axum::extract::{Multipart, State};
 use axum::http::StatusCode;
 use serde::Serialize;
-use tracing::info;
+use tracing::{info, warn};
 
 /// Returned to the client after a successful upload.
 #[derive(Serialize)]
@@ -14,6 +15,9 @@ pub struct UploadResponse {
     status: String,
     path: String,
     filename: String,
+    /// Present only when a database was available for ingestion.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pipeline: Option<PipelineResult>,
 }
 
 /// Upload a JSON file via multipart form data.
@@ -21,8 +25,12 @@ pub struct UploadResponse {
 /// Expects a single file in a field named `"file"`.  The file contents are
 /// validated as JSON, then persisted under `tmp/uploads/` with a
 /// timestamp-prefixed filename to avoid collisions.
+///
+/// If a database connection is available, the spec is also fed through the
+/// ingestion pipeline (raw schema → normalized endpoints → capability
+/// nodes).
 pub async fn upload(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     mut multipart: Multipart,
 ) -> AppResult<(StatusCode, axum::Json<UploadResponse>)> {
     let upload_dir = PathBuf::from("tmp/uploads");
@@ -60,18 +68,41 @@ pub async fn upload(
         break; // Only process the first matching file field.
     }
 
-    match (saved_path, saved_filename) {
-        (Some(path), Some(filename)) => {
-            info!("Saved uploaded spec to {}", path.display());
-            Ok((
-                StatusCode::CREATED,
-                axum::Json(UploadResponse {
-                    status: "ok".into(),
-                    path: path.display().to_string(),
-                    filename,
-                }),
-            ))
+    let (path, filename) = match (saved_path, saved_filename) {
+        (Some(p), Some(f)) => (p, f),
+        _ => return Err(AppError::Upload(UploadError::MissingField("file".into()))),
+    };
+    let filepath = path.display().to_string();
+
+    info!("Saved uploaded spec to {}", path.display());
+
+    // ── Run the ingestion pipeline if a database is available ────────────
+    let pipeline = if let Some(ref db) = state.db {
+        match run_pipeline(db, filepath.as_ref()).await {
+            Ok(result) => {
+                info!(
+                    "Pipeline complete: {} endpoints, {} capabilities for '{}'",
+                    result.endpoints_created, result.capabilities_created, result.provider,
+                );
+                Some(result)
+            }
+            Err(e) => {
+                warn!("Pipeline ingestion skipped (DB error): {e}");
+                None
+            }
         }
-        _ => Err(AppError::Upload(UploadError::MissingField("file".into()))),
-    }
+    } else {
+        warn!("No database configured — skipping pipeline ingestion");
+        None
+    };
+
+    Ok((
+        StatusCode::CREATED,
+        axum::Json(UploadResponse {
+            status: "ok".into(),
+            path: path.display().to_string(),
+            filename,
+            pipeline,
+        }),
+    ))
 }

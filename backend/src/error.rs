@@ -16,6 +16,10 @@ pub enum AppError {
     Upload(#[from] UploadError),
     #[error("Multipart error: {0}")]
     Multipart(#[from] axum::extract::multipart::MultipartError),
+    #[error("Pipeline error: {0}")]
+    Pipeline(#[from] PipelineError),
+    #[error("Error parsing spec: {0}")]
+    SpecParsing(#[from] SpecParsingError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -34,6 +38,16 @@ pub enum UploadError {
     InvalidJson(#[from] serde_json::Error),
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum PipelineError {
+    #[error("Failed to parse OpenAPI spec: {0}")]
+    Parse(#[from] serde_json::Error),
+    #[error("Failed to convert to schema: {0}")]
+    Convert(String),
+    #[error("DB operation failed: {0}")]
+    Db(String),
+}
+
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         match self {
@@ -42,6 +56,8 @@ impl IntoResponse for AppError {
             AppError::Db(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
             AppError::Upload(e) => (StatusCode::BAD_REQUEST, e.to_string()),
             AppError::Multipart(e) => (StatusCode::BAD_REQUEST, e.to_string()),
+            AppError::Pipeline(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
+            AppError::SpecParsing(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
         }
         .into_response()
     }
