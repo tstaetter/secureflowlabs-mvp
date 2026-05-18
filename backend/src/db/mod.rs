@@ -30,7 +30,7 @@ pub enum HttpMethod {
     Patch,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum FieldLocation {
     Query,
     Path,
@@ -38,7 +38,7 @@ pub enum FieldLocation {
     Body,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum FieldType {
     String,
     Integer,
@@ -86,8 +86,7 @@ impl AppDatabase {
     async fn init_db_connection() -> AppResult<mongodb::Database> {
         let mongo_uri = std::env::var("MONGODB_URI")
             .unwrap_or_else(|_| "mongodb://localhost:27017".to_string());
-        let mongo_db =
-            std::env::var("MONGODB_NAME").unwrap_or_else(|_| "filez_zone_dev".to_string());
+        let mongo_db = std::env::var("MONGODB_NAME").unwrap_or_else(|_| "sfl_mvp_dev".to_string());
         let client = Client::with_uri_str(&mongo_uri).await?;
 
         info!("Connected to MongoDB on {}", mongo_uri);
