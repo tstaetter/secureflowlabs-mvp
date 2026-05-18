@@ -2,6 +2,7 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 
 pub type AppResult<T> = Result<T, AppError>;
+pub type SpecParsingResult<T> = Result<T, SpecParsingError>;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {
@@ -19,4 +20,12 @@ impl IntoResponse for AppError {
         }
         .into_response()
     }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum SpecParsingError {
+    #[error("Error deserializing input: {0}")]
+    Serde(#[from] serde_json::error::Error),
+    #[error("IO error: {0}")]
+    Io(#[from] std::io::Error),
 }

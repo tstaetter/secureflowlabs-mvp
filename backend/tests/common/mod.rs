@@ -1,5 +1,5 @@
 use axum_test::TestServer;
-use backend::routes::app;
+use backend::app;
 use backend::AppState;
 
 /// Build and return an `axum_test::TestServer` from the full app router.

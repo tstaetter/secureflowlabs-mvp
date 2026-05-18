@@ -1,4 +1,4 @@
-use backend::routes::app;
+use backend::app;
 use backend::{AppResult, AppState};
 use mongodb::Client;
 use tokio::signal;

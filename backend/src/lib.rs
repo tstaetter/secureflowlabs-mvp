@@ -1,11 +1,13 @@
 mod db;
 mod error;
 mod handlers;
+mod openapi;
 mod payloads;
-pub mod routes;
+mod routes;
 
 pub use error::*;
 pub use handlers::*;
+pub use routes::*;
 
 /// Application state
 #[derive(Clone)]
