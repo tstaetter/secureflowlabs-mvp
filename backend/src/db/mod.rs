@@ -3,8 +3,8 @@ mod normalized_endpoint;
 mod raw_schema;
 
 use crate::{AppError, AppResult, DbError};
-use mongodb::bson::doc;
 pub use capability_node::*;
+use mongodb::bson::doc;
 use mongodb::{Client, Collection};
 pub use normalized_endpoint::*;
 pub use raw_schema::*;
@@ -21,7 +21,7 @@ pub enum AuthType {
     OAuth2,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum HttpMethod {
     Get,
     Post,
@@ -61,11 +61,6 @@ pub struct OutputField {
     pub name: String,
     pub field_type: FieldType,
     pub required: bool,
-}
-impl PartialEq for HttpMethod {
-    fn eq(&self, _other: &Self) -> bool {
-        todo!()
-    }
 }
 
 /// Generic model trait

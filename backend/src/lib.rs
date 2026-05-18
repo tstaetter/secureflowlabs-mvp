@@ -1,7 +1,7 @@
-mod db;
+pub mod db;
 mod error;
 mod handlers;
-mod openapi;
+pub mod openapi;
 mod payloads;
 mod routes;
 

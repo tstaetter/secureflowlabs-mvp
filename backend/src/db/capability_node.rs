@@ -10,7 +10,7 @@ pub struct Capability {
     pub id: Option<ObjectId>,
     pub semantic_name: String,
     pub description: String,
-    pub endpoint_id: String,
+    pub endpoint_id: ObjectId,
     pub tags: Vec<String>,
 }
 

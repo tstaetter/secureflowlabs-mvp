@@ -40,6 +40,33 @@ impl OpenApiNormalizer {
                     op,
                 ));
             }
+
+            if let Some(op) = item.put {
+                endpoints.push(self.normalize_operation(
+                    provider.clone(),
+                    &path,
+                    HttpMethod::Put,
+                    op,
+                ));
+            }
+
+            if let Some(op) = item.patch {
+                endpoints.push(self.normalize_operation(
+                    provider.clone(),
+                    &path,
+                    HttpMethod::Patch,
+                    op,
+                ));
+            }
+
+            if let Some(op) = item.delete {
+                endpoints.push(self.normalize_operation(
+                    provider.clone(),
+                    &path,
+                    HttpMethod::Delete,
+                    op,
+                ));
+            }
         }
 
         endpoints
