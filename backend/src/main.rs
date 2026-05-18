@@ -1,9 +1,9 @@
-use backend::{app, AppDatabase};
+use backend::{AppDatabase, app};
 use backend::{AppResult, AppState};
 use tokio::signal;
 use tracing::info;
-use tracing_subscriber::prelude::*;
 use tracing_subscriber::EnvFilter;
+use tracing_subscriber::prelude::*;
 
 #[tokio::main]
 async fn main() -> AppResult<()> {

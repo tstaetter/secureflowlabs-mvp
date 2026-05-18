@@ -5,7 +5,7 @@ edition = "2024"
 authors = ["Thomas Stätter <thomas.staetter@gmail.com>"]
 
 [dependencies]
-axum = "0.8"
+axum = { version = "0.8", features = ["multipart"] }
 dotenvy = "0.15"
 mongodb = "3"
 openapiv3 = "2"
