@@ -36,6 +36,8 @@ pub enum UploadError {
     MissingField(String),
     #[error("Invalid JSON: {0}")]
     InvalidJson(#[from] serde_json::Error),
+    #[error("Invalid YAML: {0}")]
+    InvalidYaml(#[from] serde_yaml::Error),
 }
 
 #[derive(Debug, thiserror::Error)]

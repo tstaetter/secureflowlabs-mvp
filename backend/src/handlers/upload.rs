@@ -49,9 +49,14 @@ pub async fn upload(
 
         let data = field.bytes().await?;
 
-        // Validate that the uploaded payload is well-formed JSON.
-        serde_json::from_slice::<serde_json::Value>(&data)
-            .map_err(|e| AppError::Upload(UploadError::InvalidJson(e)))?;
+        // Validate that the uploaded payload is well-formed JSON or YAML.
+        if original_name.ends_with(".json") {
+            serde_json::from_slice::<serde_json::Value>(&data)
+                .map_err(|e| AppError::Upload(UploadError::InvalidJson(e)))?;
+        } else {
+            serde_yaml::from_slice::<serde_yaml::Value>(&data)
+                .map_err(|e| AppError::Upload(UploadError::InvalidYaml(e)))?;
+        }
 
         // Generate a unique filename: <timestamp_ms>-<original_name>
         let ts = SystemTime::now()
