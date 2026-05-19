@@ -3,13 +3,12 @@ mod error;
 mod handlers;
 pub mod openapi;
 mod payloads;
-pub mod pipeline;
 mod routes;
 
 pub use crate::db::AppDatabase;
 pub use error::*;
 pub use handlers::*;
-pub use pipeline::*;
+pub use openapi::pipeline::*;
 pub use routes::*;
 
 /// Application state

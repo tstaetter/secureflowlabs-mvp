@@ -3,7 +3,9 @@
 //! Orchestrates the full ingestion flow for an uploaded OpenAPI specification.
 
 use crate::db::{AppDatabase, Capability, Model, NormalizedEndpoint, RawSchema};
-use crate::openapi::{ApiNormalizer, OpenApiNormalizer, get_raw_spec, infer_capability};
+use crate::openapi::{
+    ApiNormalizer, OpenApiNormalizer, get_raw_json_spec, get_raw_yaml_spec, infer_capability,
+};
 use crate::{AppError, AppResult, PipelineError};
 use serde::Serialize;
 use tracing::info;
@@ -27,8 +29,12 @@ pub struct PipelineResult {
 ///
 /// Returns a `PipelineResult` with counts of what was created.
 pub async fn run_pipeline(db: &AppDatabase, path: &str) -> AppResult<PipelineResult> {
-    // ── Step 1: Parse the raw JSON into an OpenAPI struct ────────────────
-    let spec = get_raw_spec(path).await?;
+    // ── Step 1: Parse the raw spec into an OpenAPI struct ───────────────
+    let spec = if path.ends_with("json") {
+        get_raw_json_spec(path).await?
+    } else {
+        get_raw_yaml_spec(path).await?
+    };
     let provider = spec.info.title.clone();
     let version = spec.info.version.clone();
 

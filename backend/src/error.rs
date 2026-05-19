@@ -66,7 +66,9 @@ impl IntoResponse for AppError {
 #[derive(Debug, thiserror::Error)]
 pub enum SpecParsingError {
     #[error("Error deserializing input: {0}")]
-    Serde(#[from] serde_json::error::Error),
+    SerdeJson(#[from] serde_json::error::Error),
+    #[error("Error deserializing input: {0}")]
+    SerdeYaml(#[from] serde_yaml::Error),
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
 }

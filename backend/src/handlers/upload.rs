@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::pipeline::run_pipeline;
+use crate::openapi::pipeline::run_pipeline;
 use crate::{AppError, AppResult, AppState, PipelineResult, UploadError};
 use axum::extract::{Multipart, State};
 use axum::http::StatusCode;

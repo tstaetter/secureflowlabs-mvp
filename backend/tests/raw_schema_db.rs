@@ -8,10 +8,10 @@
 //! gracefully instead of failing.
 
 use backend::db::{AppDatabase, Capability, Model, NormalizedEndpoint, RawSchema, SchemaSource};
-use backend::pipeline::run_pipeline;
+use backend::openapi::pipeline::run_pipeline;
+use mongodb::bson::doc;
 use mongodb::Client;
 use mongodb::Collection;
-use mongodb::bson::doc;
 use openapiv3::OpenAPI;
 use std::time::Duration;
 

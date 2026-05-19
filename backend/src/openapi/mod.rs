@@ -1,9 +1,10 @@
-use crate::AppError;
 use crate::db::NormalizedEndpoint;
+use crate::AppError;
 
 mod capability;
 mod normalizer;
 mod parser;
+pub mod pipeline;
 
 pub use capability::infer_capability;
 pub use normalizer::OpenApiNormalizer;
