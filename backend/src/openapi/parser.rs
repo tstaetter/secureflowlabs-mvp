@@ -99,9 +99,19 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn test_get_raw_spec() -> anyhow::Result<()> {
+    async fn test_get_raw_json_spec() -> anyhow::Result<()> {
         let spec_path = "tmp/stripe_spec3.json";
         let spec = get_raw_json_spec(spec_path).await?;
+
+        assert!(!spec.info.title.is_empty());
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_get_raw_yaml_spec() -> anyhow::Result<()> {
+        let spec_path = "tmp/openapi_v2.yaml";
+        let spec = get_raw_yaml_spec(spec_path).await?;
 
         assert!(!spec.info.title.is_empty());
 
@@ -112,6 +122,16 @@ mod tests {
     async fn test_get_raw_spec_fails() -> anyhow::Result<()> {
         let spec_path = "nonexistent_spec.json";
         let result = get_raw_json_spec(spec_path).await;
+
+        assert!(result.is_err());
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_get_raw_yaml_spec_fails() -> anyhow::Result<()> {
+        let spec_path = "nonexistent_spec.yaml";
+        let result = get_raw_yaml_spec(spec_path).await;
 
         assert!(result.is_err());
 
