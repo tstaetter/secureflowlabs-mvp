@@ -1,6 +1,6 @@
 use crate::db::{HttpMethod, NormalizedEndpoint};
 
-pub async fn infer_capability(endpoint: &NormalizedEndpoint) -> String {
+pub fn infer_capability(endpoint: &NormalizedEndpoint) -> String {
     let path = endpoint.path.to_lowercase();
     let prefix = match endpoint.method {
         HttpMethod::Post => "create",

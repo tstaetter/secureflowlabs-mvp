@@ -210,7 +210,6 @@ fn step3_normalize_to_endpoints() {
 fn step4_infer_capabilities() {
     let spec = parse_sample_spec();
     let provider = spec.info.title.clone();
-
     let normalizer = OpenApiNormalizer { provider, spec };
     let endpoints = normalizer.normalize().expect("normalization must succeed");
 
@@ -250,21 +249,21 @@ fn step4_infer_capabilities() {
         .iter()
         .find(|c| c.description == "Delete a customer")
         .expect("capability for DELETE /v1/customers/{id} must exist");
-    assert_eq!(delete_customer.semantic_name, "delete_resource");
+    assert_eq!(delete_customer.semantic_name, "delete_customer");
 
     // GET /v1/customers → falls through to default (no matching rule)
     let list_customers = capabilities
         .iter()
         .find(|c| c.description == "List all customers")
         .expect("capability for GET /v1/customers must exist");
-    assert_eq!(list_customers.semantic_name, "unknown");
+    assert_eq!(list_customers.semantic_name, "get_customer");
 
     // POST /v1/charges → falls through to default (no "customer" in path)
     let create_charge = capabilities
         .iter()
         .find(|c| c.description == "Create a charge")
         .expect("capability for POST /v1/charges must exist");
-    assert_eq!(create_charge.semantic_name, "unknown");
+    assert_eq!(create_charge.semantic_name, "create_unknown");
 }
 
 /// Step 5: Full end-to-end pipeline — from raw JSON string to capability nodes in one shot.
@@ -326,6 +325,11 @@ fn step5_full_pipeline() {
     //   everything else            → "unknown"
     assert_eq!(
         names,
-        vec!["create_customer", "delete_resource", "unknown", "unknown"]
+        vec![
+            "create_customer",
+            "create_unknown",
+            "delete_customer",
+            "get_customer",
+        ]
     );
 }

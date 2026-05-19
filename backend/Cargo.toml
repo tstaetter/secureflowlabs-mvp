@@ -5,6 +5,7 @@ edition = "2024"
 authors = ["Thomas Stätter <thomas.staetter@gmail.com>"]
 
 [dependencies]
+async-trait = "0.1.89"
 axum = { version = "0.8", features = ["multipart"] }
 dotenvy = "0.15"
 mongodb = "3"

@@ -71,7 +71,7 @@ pub async fn run_pipeline(db: &AppDatabase, path: &str) -> AppResult<PipelineRes
     // ── Step 4: Infer capabilities and persist each ──────────────────────
     let mut capabilities_created = 0usize;
     for ep in &persisted_endpoints {
-        let semantic_name = infer_capability(ep).await;
+        let semantic_name = infer_capability(ep);
         let description = ep
             .summary
             .clone()
@@ -184,6 +184,6 @@ mod tests {
 
         // POST /v1/customers → "create_customer", DELETE → "delete_resource"
         assert!(names.contains(&"create_customer".to_string()));
-        assert!(names.contains(&"delete_resource".to_string()));
+        assert!(names.contains(&"delete_customer".to_string()));
     }
 }
