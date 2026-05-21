@@ -4,7 +4,7 @@ mod raw_schema;
 
 use crate::{AppError, AppResult, DbError};
 pub use capability_node::*;
-use mongodb::bson::{Document, doc};
+use mongodb::bson::{doc, Document};
 use mongodb::{Client, Collection};
 pub use normalized_endpoint::*;
 pub use raw_schema::*;
@@ -126,14 +126,14 @@ impl AppDatabase {
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
-    use mongodb::Client;
     use mongodb::bson::doc;
+    use mongodb::Client;
     use std::time::Duration;
 
     /// Probe whether MongoDB is reachable within a short timeout.
-    async fn try_connect() -> Option<AppDatabase> {
+    pub async fn try_connect() -> Option<AppDatabase> {
         let mongo_uri = std::env::var("MONGODB_URI")
             .unwrap_or_else(|_| "mongodb://localhost:27017".to_string());
         let mongo_db = std::env::var("MONGODB_NAME").unwrap_or_else(|_| "sfl_mvp_dev".to_string());
@@ -246,8 +246,7 @@ mod tests {
         let found = db
             .find_one::<TestDoc>(doc! { "_id": id })
             .await
-            .expect("find_one")
-            .expect("must exist");
+            .expect("find_one must succeed");
 
         assert_eq!(found.name, "findable");
         assert_eq!(found.value, 99);
@@ -258,7 +257,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn find_one_missing_returns_none() {
+    async fn find_one_missing_returns_err() {
         let db = match try_connect().await {
             Some(db) => db,
             None => return,
@@ -266,12 +265,9 @@ mod tests {
 
         let fake_id = mongodb::bson::oid::ObjectId::new();
 
-        let result = db
-            .find_one::<TestDoc>(doc! { "_id": fake_id })
-            .await
-            .expect("find_one must not error");
+        let result = db.find_one::<TestDoc>(doc! { "_id": fake_id }).await;
 
-        assert!(result.is_none(), "non-existent doc must return None");
+        assert!(result.is_err(), "non-existent doc must return Err");
     }
 
     #[tokio::test]
@@ -291,8 +287,7 @@ mod tests {
         let found = db
             .find_one::<TestDoc>(doc! {})
             .await
-            .expect("find_one")
-            .expect("must exist");
+            .expect("find_one must succeed");
 
         assert_eq!(found.name, "first");
 
