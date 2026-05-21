@@ -28,6 +28,8 @@ pub enum DbError {
     Connection(#[from] mongodb::error::Error),
     #[error("Failed to insert new doc")]
     Insertion(String),
+    #[error("Requested document not found: {0}")]
+    NotFound(String),
 }
 
 #[derive(Debug, thiserror::Error)]
