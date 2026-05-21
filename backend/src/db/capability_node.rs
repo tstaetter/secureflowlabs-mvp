@@ -42,6 +42,7 @@ mod tests {
     use crate::db::tests::try_connect;
     use crate::db::{AuthType, HttpMethod};
 
+    #[tokio::test]
     async fn test_capability_endpoint_retrieval() {
         let db = match try_connect().await {
             Some(db) => db,
