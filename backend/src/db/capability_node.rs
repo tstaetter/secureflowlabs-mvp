@@ -1,6 +1,6 @@
 use crate::{
-    db::{Model, NormalizedEndpoint}, AppDatabase,
-    AppResult,
+    AppDatabase, AppResult,
+    db::{Model, NormalizedEndpoint},
 };
 use mongodb::bson::doc;
 use mongodb::bson::oid::ObjectId;
@@ -53,7 +53,7 @@ mod tests {
         let endpoint = NormalizedEndpoint {
             id: None,
             internal_id: "test_ep_for_cap".into(),
-            provider: "test_provider".into(),
+            schema: ObjectId::new(),
             method: HttpMethod::Get,
             path: "/test".into(),
             summary: Some("Test endpoint".into()),

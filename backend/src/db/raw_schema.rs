@@ -21,6 +21,7 @@ pub struct RawSchema {
     pub source: SchemaSource,
     pub version: String,
     pub spec: Value,
+    pub url: String,
 }
 
 impl Model for RawSchema {

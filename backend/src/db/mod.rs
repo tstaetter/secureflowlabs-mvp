@@ -4,7 +4,7 @@ mod raw_schema;
 
 use crate::{AppError, AppResult, DbError};
 pub use capability_node::*;
-use mongodb::bson::{doc, Document};
+use mongodb::bson::{Document, doc};
 use mongodb::{Client, Collection};
 pub use normalized_endpoint::*;
 pub use raw_schema::*;
@@ -28,6 +28,18 @@ pub enum HttpMethod {
     Put,
     Delete,
     Patch,
+}
+
+impl From<HttpMethod> for reqwest::Method {
+    fn from(value: HttpMethod) -> Self {
+        match value {
+            HttpMethod::Get => Self::GET,
+            HttpMethod::Post => Self::POST,
+            HttpMethod::Put => Self::PUT,
+            HttpMethod::Delete => Self::DELETE,
+            HttpMethod::Patch => Self::PATCH,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -128,8 +140,8 @@ impl AppDatabase {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use mongodb::bson::doc;
     use mongodb::Client;
+    use mongodb::bson::doc;
     use std::time::Duration;
 
     /// Probe whether MongoDB is reachable within a short timeout.

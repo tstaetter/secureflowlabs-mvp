@@ -4,6 +4,7 @@ mod handlers;
 pub mod openapi;
 mod payloads;
 mod routes;
+pub mod runtime;
 
 pub use crate::db::AppDatabase;
 pub use error::*;
