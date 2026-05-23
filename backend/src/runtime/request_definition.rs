@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use serde::{Deserialize, Serialize};
 
 use crate::db::{FieldLocation, HttpMethod, NormalizedEndpoint};
@@ -28,6 +26,7 @@ impl From<NormalizedEndpoint> for RequestDefinition {
             path: path_from_input(value.clone()),
             headers: headers_from_input(value.clone()),
             query: query_from_input(value.clone()),
+            body: body_from_input(value),
         }
     }
 }
@@ -66,4 +65,16 @@ fn path_from_input(endpoint: NormalizedEndpoint) -> Vec<String> {
     }
 
     path_params
+}
+
+fn body_from_input(endpoint: NormalizedEndpoint) -> Vec<String> {
+    let mut body_fields = Vec::new();
+
+    for param in endpoint.inputs {
+        if param.location == FieldLocation::Body {
+            body_fields.push(param.name);
+        }
+    }
+
+    body_fields
 }

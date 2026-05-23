@@ -76,7 +76,7 @@ impl OpenApiNormalizer {
 
     fn normalize_operation(
         &self,
-        provider: String,
+        provider_id: ObjectId,
         path: &str,
         method: HttpMethod,
         op: Operation,
@@ -168,8 +168,13 @@ impl OpenApiNormalizer {
 
         NormalizedEndpoint {
             id: None,
-            internal_id: format!("{}:{}:{}", provider, format!("{:?}", method), path),
-            provider: provider.to_string(),
+            internal_id: format!(
+                "{}:{}:{}",
+                provider_id.clone(),
+                format!("{:?}", method),
+                path
+            ),
+            provider_id,
             method,
             path: path.to_string(),
             summary: op.summary,
