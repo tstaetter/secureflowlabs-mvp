@@ -2,6 +2,7 @@ use crate::db::{
     AuthType, FieldLocation, FieldType, HttpMethod, InputField, NormalizedEndpoint, OutputField,
 };
 use crate::openapi::{ApiNormalizer, NormalizeResult};
+use mongodb::bson::oid::ObjectId;
 use openapiv3::{OpenAPI, Operation, Parameter, ReferenceOr, Schema, SchemaKind, StatusCode, Type};
 
 pub struct OpenApiNormalizer {
@@ -76,7 +77,7 @@ impl OpenApiNormalizer {
 
     fn normalize_operation(
         &self,
-        provider_id: ObjectId,
+        provider: String,
         path: &str,
         method: HttpMethod,
         op: Operation,
@@ -168,13 +169,8 @@ impl OpenApiNormalizer {
 
         NormalizedEndpoint {
             id: None,
-            internal_id: format!(
-                "{}:{}:{}",
-                provider_id.clone(),
-                format!("{:?}", method),
-                path
-            ),
-            provider_id,
+            schema: ObjectId::default(),
+            internal_id: format!("{}:{}:{}", provider.clone(), format!("{:?}", method), path),
             method,
             path: path.to_string(),
             summary: op.summary,

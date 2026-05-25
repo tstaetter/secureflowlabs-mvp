@@ -90,6 +90,7 @@ impl TryFrom<OpenAPI> for RawSchema {
             source: SchemaSource::OpenApiJson,
             version: value.info.version.clone(),
             spec: serde_json::to_value(value)?,
+            url: "".to_string(),
         })
     }
 }
