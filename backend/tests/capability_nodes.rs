@@ -174,7 +174,7 @@ fn step3_normalize_to_endpoints() {
 
     let post_customers =
         find(HttpMethod::Post, "/v1/customers").expect("POST /v1/customers must exist");
-    assert_eq!(post_customers.provider, provider);
+    assert!(post_customers.internal_id.starts_with(&provider));
     assert_eq!(
         post_customers.summary.as_deref(),
         Some("Create a new customer")
@@ -210,12 +210,17 @@ fn step3_normalize_to_endpoints() {
 fn step4_infer_capabilities() {
     let spec = parse_sample_spec();
     let provider = spec.info.title.clone();
-    let normalizer = OpenApiNormalizer { provider, spec };
+
+    let normalizer = OpenApiNormalizer {
+        provider: provider.clone(),
+        spec,
+    };
     let endpoints = normalizer.normalize().expect("normalization must succeed");
 
     // Build capabilities from every endpoint.  Because we're not backed by a
     // real database, each capability gets a fresh ObjectId for its endpoint
     // foreign key — in production this would be the NormalizedEndpoint._id.
+    let provider_name = provider.clone();
     let capabilities: Vec<Capability> = endpoints
         .iter()
         .map(|ep| {
@@ -230,7 +235,7 @@ fn step4_infer_capabilities() {
                 semantic_name,
                 description,
                 endpoint_id: ObjectId::new(),
-                tags: vec![ep.provider.clone()],
+                tags: vec![provider_name.clone()],
             }
         })
         .collect();
@@ -281,13 +286,14 @@ fn step5_full_pipeline() {
 
     // 2. Normalize
     let normalizer = OpenApiNormalizer {
-        provider,
+        provider: provider.clone(),
         spec: spec2,
     };
     let endpoints = normalizer.normalize().expect("normalize");
     assert!(!endpoints.is_empty());
 
     // 3. Infer capabilities
+    let provider_name = provider.clone();
     let capabilities: Vec<Capability> = endpoints
         .iter()
         .map(|ep| {
@@ -297,7 +303,7 @@ fn step5_full_pipeline() {
                 semantic_name: name,
                 description: ep.summary.clone().unwrap_or_default(),
                 endpoint_id: ObjectId::new(),
-                tags: vec![ep.provider.clone()],
+                tags: vec![provider_name.clone()],
             }
         })
         .collect();

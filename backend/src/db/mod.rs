@@ -4,7 +4,9 @@ mod raw_schema;
 
 use crate::{AppError, AppResult, DbError};
 pub use capability_node::*;
-use mongodb::bson::{Document, doc};
+use futures::stream::StreamExt;
+use futures::TryStreamExt;
+use mongodb::bson::{doc, Document};
 use mongodb::{Client, Collection};
 pub use normalized_endpoint::*;
 pub use raw_schema::*;
@@ -133,6 +135,22 @@ impl AppDatabase {
             ),
         }
     }
+
+    pub async fn find_many<T: Model>(&self, filter: Document) -> AppResult<Vec<T>> {
+        let collection: Collection<T> = self.database.collection(T::COLLECTION);
+        let mut result = collection.find(filter.clone()).await?;
+        let mut documents = Vec::new();
+
+        while result.has_next() {
+            if let Some(doc) = result.next().await {
+                documents.push(doc?);
+            } else {
+                break;
+            }
+        }
+
+        Ok(documents)
+    }
 }
 
 // ── Tests ────────────────────────────────────────────────────────────────────
@@ -140,8 +158,8 @@ impl AppDatabase {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use mongodb::Client;
     use mongodb::bson::doc;
+    use mongodb::Client;
     use std::time::Duration;
 
     /// Probe whether MongoDB is reachable within a short timeout.

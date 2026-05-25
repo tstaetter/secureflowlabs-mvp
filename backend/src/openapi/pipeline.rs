@@ -6,6 +6,7 @@ use crate::db::{AppDatabase, Capability, Model, NormalizedEndpoint, RawSchema};
 use crate::openapi::{
     ApiNormalizer, OpenApiNormalizer, get_raw_json_spec, get_raw_yaml_spec, infer_capability,
 };
+use crate::runtime::{ExecutionPlan, RequestDefinition, RetryPolicy};
 use crate::{AppError, AppResult, PipelineError};
 use serde::Serialize;
 use tracing::info;
@@ -16,6 +17,7 @@ pub struct PipelineResult {
     pub provider: String,
     pub version: String,
     pub endpoints_created: usize,
+    pub execution_plans_created: usize,
     pub capabilities_created: usize,
 }
 
@@ -47,6 +49,8 @@ pub async fn run_pipeline(db: &AppDatabase, path: &str) -> AppResult<PipelineRes
         .await
         .map_err(|e| AppError::Pipeline(PipelineError::Db(e.to_string())))?;
 
+    let schema_id = _raw.id.expect("inserted RawSchema must have an _id");
+
     info!(
         "Ingested raw schema for provider '{}' v{}",
         provider, version
@@ -58,23 +62,41 @@ pub async fn run_pipeline(db: &AppDatabase, path: &str) -> AppResult<PipelineRes
     };
 
     let endpoints = normalizer.normalize()?;
+    let endpoint_count = endpoints.len();
 
-    let mut persisted_endpoints: Vec<NormalizedEndpoint> = Vec::with_capacity(endpoints.len());
-    for ep in &endpoints {
+    let mut persisted_endpoints: Vec<NormalizedEndpoint> = Vec::with_capacity(endpoint_count);
+    for mut ep in endpoints {
+        ep.schema = schema_id;
         let created = db
-            .insert_one(ep)
+            .insert_one(&ep)
             .await
             .map_err(|e| AppError::Pipeline(PipelineError::Db(e.to_string())))?;
         persisted_endpoints.push(created);
     }
 
-    info!(
-        "Normalized {} endpoints for '{}'",
-        endpoints.len(),
-        provider
-    );
+    info!("Normalized {} endpoints for '{}'", endpoint_count, provider);
 
-    // ── Step 4: Infer capabilities and persist each ──────────────────────
+    // ── Step 4: Build execution plans and persist each ────────────────
+    let mut plans_created = 0usize;
+    for ep in &persisted_endpoints {
+        let request = RequestDefinition::from(ep.clone());
+        let plan = ExecutionPlan {
+            id: None,
+            provider_id: ep.schema,
+            request,
+            retry: RetryPolicy::default(),
+        };
+
+        db.insert_one(&plan)
+            .await
+            .map_err(|e| AppError::Pipeline(PipelineError::Db(e.to_string())))?;
+
+        plans_created += 1;
+    }
+
+    info!("Built {} execution plans for '{}'", plans_created, provider);
+
+    // ── Step 5: Infer capabilities and persist each ──────────────────────
     let mut capabilities_created = 0usize;
     for ep in &persisted_endpoints {
         let semantic_name = infer_capability(ep);
@@ -106,7 +128,8 @@ pub async fn run_pipeline(db: &AppDatabase, path: &str) -> AppResult<PipelineRes
     Ok(PipelineResult {
         provider,
         version,
-        endpoints_created: endpoints.len(),
+        endpoints_created: endpoint_count,
+        execution_plans_created: plans_created,
         capabilities_created,
     })
 }

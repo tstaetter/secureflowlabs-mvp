@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
+use validator::Validate;
 
 use crate::db::{FieldLocation, HttpMethod, NormalizedEndpoint};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct RequestDefinition {
     /// HTTP method to use
     pub method: HttpMethod,

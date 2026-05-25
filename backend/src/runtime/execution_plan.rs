@@ -1,35 +1,42 @@
 use mongodb::bson::doc;
 use mongodb::bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
+use validator::Validate;
 
+use crate::db::Model;
 use crate::{
-    AppDatabase,
+    AppDatabase, AppResult,
     db::RawSchema,
     runtime::{RequestDefinition, RetryPolicy},
 };
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct ExecutionPlan {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ObjectId>,
-    /// TODO: The endpoint provider???
     pub provider_id: ObjectId,
     /// The HTTP request to be executed
     pub request: RequestDefinition,
-    // The HTTP auth definition
-    // pub auth: AuthDefinition,
-    // pub validation: ValidationDefinition,
     /// The retry policy if the request fails
     pub retry: RetryPolicy,
-    // The safety policy defines the security scope
-    // pub safety: SafetyPolicy,
+}
+
+impl Model for ExecutionPlan {
+    #[cfg(test)]
+    const COLLECTION: &'static str = "test_execution_plans";
+    #[cfg(not(test))]
+    const COLLECTION: &'static str = "execution_plans";
+
+    fn get_id(&self) -> ObjectId {
+        self.id.unwrap_or_default()
+    }
 }
 
 impl ExecutionPlan {
-    async fn schema(&self, db: &AppDatabase) -> RawSchema {
+    /// Resolve the `RawSchema` by its foreign key so callers can obtain the
+    /// base URL for the provider.
+    pub async fn resolve_schema(&self, db: &AppDatabase) -> AppResult<RawSchema> {
         let filter = doc! {"_id": self.provider_id};
-        db.find_one::<RawSchema>(filter)
-            .await
-            .expect("failed to query schema")
+        db.find_one::<RawSchema>(filter).await
     }
 }

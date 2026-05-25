@@ -9,9 +9,9 @@
 
 use backend::db::{AppDatabase, Capability, Model, NormalizedEndpoint, RawSchema, SchemaSource};
 use backend::openapi::pipeline::run_pipeline;
-use mongodb::bson::doc;
 use mongodb::Client;
 use mongodb::Collection;
+use mongodb::bson::doc;
 use openapiv3::OpenAPI;
 use std::time::Duration;
 
@@ -302,6 +302,7 @@ async fn run_pipeline_end_to_end() {
     assert_eq!(result.provider, provider);
     assert_eq!(result.version, "0.1");
     assert_eq!(result.endpoints_created, 2); // POST + GET on /v1/items
+    assert_eq!(result.execution_plans_created, 2);
     assert_eq!(result.capabilities_created, 2);
 
     // Verify RawSchema was persisted.
@@ -319,10 +320,22 @@ async fn run_pipeline_end_to_end() {
         let collection: Collection<NormalizedEndpoint> =
             db.database.collection(NormalizedEndpoint::COLLECTION);
         let count = collection
-            .count_documents(doc! { "provider": provider })
+            .count_documents(doc! {})
             .await
             .expect("count endpoints");
         assert_eq!(count, 2, "exactly two endpoints must be persisted");
+    }
+
+    // Verify ExecutionPlans were persisted.
+    {
+        use backend::runtime::ExecutionPlan;
+        let collection: Collection<ExecutionPlan> =
+            db.database.collection(ExecutionPlan::COLLECTION);
+        let count = collection
+            .count_documents(doc! {})
+            .await
+            .expect("count execution plans");
+        assert_eq!(count, 2, "exactly two execution plans must be persisted");
     }
 
     // Verify Capabilities were persisted.

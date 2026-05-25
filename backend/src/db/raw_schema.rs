@@ -1,4 +1,6 @@
 use crate::db::Model;
+use axum::response::{IntoResponse, Response};
+use axum::Json;
 use mongodb::bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -32,5 +34,11 @@ impl Model for RawSchema {
 
     fn get_id(&self) -> ObjectId {
         self.id.unwrap_or_default()
+    }
+}
+
+impl IntoResponse for RawSchema {
+    fn into_response(self) -> Response {
+        Json(self).into_response()
     }
 }

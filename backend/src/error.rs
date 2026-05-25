@@ -30,6 +30,8 @@ pub enum DbError {
     Insertion(String),
     #[error("Requested document not found: {0}")]
     NotFound(String),
+    #[error("Database not configured")]
+    Configuration,
 }
 
 #[derive(Debug, thiserror::Error)]

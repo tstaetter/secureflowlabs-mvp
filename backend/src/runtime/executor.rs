@@ -5,6 +5,7 @@ use reqwest::Client;
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
 use serde::{Deserialize, Serialize};
 
+use crate::db::AppDatabase;
 use crate::runtime::ExecutionPlan;
 use crate::{AppError, AppResult};
 
@@ -54,19 +55,15 @@ pub trait Executor {
 
 pub struct HttpExecutor {
     client: Client,
+    db: AppDatabase,
 }
 
 impl HttpExecutor {
-    pub fn new() -> Self {
+    pub fn new(db: AppDatabase) -> Self {
         Self {
             client: Client::new(),
+            db,
         }
-    }
-}
-
-impl Default for HttpExecutor {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
@@ -77,7 +74,7 @@ impl Executor for HttpExecutor {
         plan: ExecutionPlan,
         context: ExecutionContext,
     ) -> AppResult<ExecutionResult> {
-        let request = build_request(&self.client, &plan, &context)?;
+        let request = build_request(&self.client, &self.db, &plan, &context).await?;
 
         let (response, retries) = execute_with_retry(&self.client, request, &plan.retry).await?;
 
@@ -88,12 +85,18 @@ impl Executor for HttpExecutor {
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 /// Build a `reqwest::Request` from the plan and execution context.
-fn build_request(
+/// Resolves the base URL from the `RawSchema` stored in the database.
+async fn build_request(
     client: &Client,
+    db: &AppDatabase,
     plan: &ExecutionPlan,
     context: &ExecutionContext,
 ) -> AppResult<reqwest::Request> {
     let method = method_from_http_method(&plan.request.method);
+
+    // Resolve the full URL: <base_url>/<path>
+    let schema = plan.resolve_schema(db).await?;
+    let full_url = format!("{}{}", schema.url.trim_end_matches('/'), plan.request.url);
 
     let mut headers = HeaderMap::new();
 
@@ -142,7 +145,7 @@ fn build_request(
         .collect();
 
     let request = client
-        .request(method, &plan.request.url)
+        .request(method, &full_url)
         .headers(headers)
         .query(&query)
         .build()
