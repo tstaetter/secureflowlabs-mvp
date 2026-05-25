@@ -5,8 +5,7 @@ mod raw_schema;
 use crate::{AppError, AppResult, DbError};
 pub use capability_node::*;
 use futures::stream::StreamExt;
-use futures::TryStreamExt;
-use mongodb::bson::{doc, Document};
+use mongodb::bson::{Document, doc};
 use mongodb::{Client, Collection};
 pub use normalized_endpoint::*;
 pub use raw_schema::*;
@@ -158,8 +157,8 @@ impl AppDatabase {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use mongodb::bson::doc;
     use mongodb::Client;
+    use mongodb::bson::doc;
     use std::time::Duration;
 
     /// Probe whether MongoDB is reachable within a short timeout.
