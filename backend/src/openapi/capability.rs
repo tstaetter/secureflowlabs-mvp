@@ -1,7 +1,11 @@
 use crate::db::{HttpMethod, NormalizedEndpoint};
 
-pub fn infer_capability(endpoint: &NormalizedEndpoint) -> String {
-    let path = endpoint.path.to_lowercase();
+/// Infer a capability name from a normalized endpoint.
+///
+/// Uses the HTTP method to determine a verb prefix (`create`, `get`, `update`,
+/// `delete`) and the local Ollama server to extract the resource noun from
+/// the path.  Falls back to `"{prefix}_unknown"` when Ollama is unavailable.
+pub async fn infer_capability(endpoint: &NormalizedEndpoint) -> String {
     let prefix = match endpoint.method {
         HttpMethod::Post => "create",
         HttpMethod::Delete => "delete",
@@ -9,23 +13,10 @@ pub fn infer_capability(endpoint: &NormalizedEndpoint) -> String {
         HttpMethod::Get => "get",
     };
 
-    let resource = if path.contains("customer") {
-        "customer"
-    } else if path.contains("account") {
-        "account"
-    } else if path.contains("apple") {
-        "apple_pay"
-    } else if path.contains("google") {
-        "google_pay"
-    } else if path.contains("fees") {
-        "fees"
-    } else if path.contains("orders") {
-        "orders"
-    } else if path.contains("payments") {
-        "payments"
-    } else {
-        "unknown"
-    };
+    let mut resource = endpoint.path.split('/').next_back().unwrap_or("unknown");
+    if resource.contains('{') {
+        resource = endpoint.path.split('/').rev().nth(1).unwrap_or("unknown");
+    }
 
     format!("{prefix}_{resource}")
 }

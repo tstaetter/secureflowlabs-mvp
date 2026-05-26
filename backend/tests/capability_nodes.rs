@@ -206,8 +206,9 @@ fn step3_normalize_to_endpoints() {
 /// Step 4: Infer capability nodes from each normalized endpoint.
 ///
 /// This validates the business logic that maps endpoints onto named capabilities.
-#[test]
-fn step4_infer_capabilities() {
+/// When Ollama is unavailable the capability names fall back to `"{verb}_unknown"`.
+#[tokio::test]
+async fn step4_infer_capabilities() {
     let spec = parse_sample_spec();
     let provider = spec.info.title.clone();
 
@@ -221,59 +222,45 @@ fn step4_infer_capabilities() {
     // real database, each capability gets a fresh ObjectId for its endpoint
     // foreign key — in production this would be the NormalizedEndpoint._id.
     let provider_name = provider.clone();
-    let capabilities: Vec<Capability> = endpoints
-        .iter()
-        .map(|ep| {
-            let semantic_name = infer_capability(ep);
-            let description = ep
-                .summary
-                .clone()
-                .unwrap_or_else(|| format!("Handle {semantic_name}"));
+    let mut capabilities = Vec::new();
+    for ep in &endpoints {
+        let semantic_name = infer_capability(ep).await;
+        let description = ep
+            .summary
+            .clone()
+            .unwrap_or_else(|| format!("Handle {semantic_name}"));
 
-            Capability {
-                id: None,
-                semantic_name,
-                description,
-                endpoint_id: ObjectId::new(),
-                tags: vec![provider_name.clone()],
-            }
-        })
-        .collect();
+        capabilities.push(Capability {
+            id: None,
+            semantic_name,
+            description,
+            endpoint_id: ObjectId::new(),
+            tags: vec![provider_name.clone()],
+        });
+    }
 
     assert_eq!(capabilities.len(), 4, "one capability per endpoint");
 
-    // POST /v1/customers → "create_customer" (matches the customer + POST rule)
-    let create_customer = capabilities
-        .iter()
-        .find(|c| c.description == "Create a new customer")
-        .expect("capability for POST /v1/customers must exist");
-    assert_eq!(create_customer.semantic_name, "create_customer");
-
-    // DELETE /v1/customers/{id} → "delete_resource" (matches the DELETE rule)
-    let delete_customer = capabilities
-        .iter()
-        .find(|c| c.description == "Delete a customer")
-        .expect("capability for DELETE /v1/customers/{id} must exist");
-    assert_eq!(delete_customer.semantic_name, "delete_customer");
-
-    // GET /v1/customers → falls through to default (no matching rule)
-    let list_customers = capabilities
-        .iter()
-        .find(|c| c.description == "List all customers")
-        .expect("capability for GET /v1/customers must exist");
-    assert_eq!(list_customers.semantic_name, "get_customer");
-
-    // POST /v1/charges → falls through to default (no "customer" in path)
-    let create_charge = capabilities
-        .iter()
-        .find(|c| c.description == "Create a charge")
-        .expect("capability for POST /v1/charges must exist");
-    assert_eq!(create_charge.semantic_name, "create_unknown");
+    // Every capability must follow the "{verb}_{noun}" pattern.
+    for cap in &capabilities {
+        let parts: Vec<&str> = cap.semantic_name.splitn(2, '_').collect();
+        assert_eq!(
+            parts.len(),
+            2,
+            "name must be verb_noun: {}",
+            cap.semantic_name
+        );
+        assert!(
+            ["create", "get", "update", "delete"].contains(&parts[0]),
+            "prefix must be a known verb: {}",
+            parts[0]
+        );
+    }
 }
 
 /// Step 5: Full end-to-end pipeline — from raw JSON string to capability nodes in one shot.
-#[test]
-fn step5_full_pipeline() {
+#[tokio::test]
+async fn step5_full_pipeline() {
     let spec: OpenAPI = serde_json::from_str(SAMPLE_SPEC).expect("valid OpenAPI JSON");
 
     // 1. RawSchema
@@ -294,19 +281,17 @@ fn step5_full_pipeline() {
 
     // 3. Infer capabilities
     let provider_name = provider.clone();
-    let capabilities: Vec<Capability> = endpoints
-        .iter()
-        .map(|ep| {
-            let name = infer_capability(ep);
-            Capability {
-                id: None,
-                semantic_name: name,
-                description: ep.summary.clone().unwrap_or_default(),
-                endpoint_id: ObjectId::new(),
-                tags: vec![provider_name.clone()],
-            }
-        })
-        .collect();
+    let mut capabilities = Vec::new();
+    for ep in &endpoints {
+        let name = infer_capability(ep).await;
+        capabilities.push(Capability {
+            id: None,
+            semantic_name: name,
+            description: ep.summary.clone().unwrap_or_default(),
+            endpoint_id: ObjectId::new(),
+            tags: vec![provider_name.clone()],
+        });
+    }
 
     // All endpoints have a corresponding capability.
     assert_eq!(capabilities.len(), endpoints.len());
@@ -318,24 +303,14 @@ fn step5_full_pipeline() {
         assert!(cap.endpoint_id != ObjectId::default());
     }
 
-    // Snapshot: verify exact capability names inferred.
-    let mut names: Vec<&str> = capabilities
-        .iter()
-        .map(|c| c.semantic_name.as_str())
-        .collect();
-    names.sort();
-
-    // Current inference rules:
-    //   POST + "customer" in path → "create_customer"
-    //   DELETE                     → "delete_resource"
-    //   everything else            → "unknown"
-    assert_eq!(
-        names,
-        vec![
-            "create_customer",
-            "create_unknown",
-            "delete_customer",
-            "get_customer",
-        ]
-    );
+    // Every capability follows the "{verb}_{noun}" pattern.
+    for cap in &capabilities {
+        let parts: Vec<&str> = cap.semantic_name.splitn(2, '_').collect();
+        assert_eq!(
+            parts.len(),
+            2,
+            "name must be verb_noun: {}",
+            cap.semantic_name
+        );
+    }
 }

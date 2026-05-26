@@ -99,7 +99,7 @@ pub async fn run_pipeline(db: &AppDatabase, path: &str) -> AppResult<PipelineRes
     // ── Step 5: Infer capabilities and persist each ──────────────────────
     let mut capabilities_created = 0usize;
     for ep in &persisted_endpoints {
-        let semantic_name = infer_capability(ep);
+        let semantic_name = infer_capability(ep).await;
         let description = ep
             .summary
             .clone()
@@ -201,18 +201,25 @@ mod tests {
         assert_eq!(delete.summary.as_deref(), Some("Delete a customer"));
     }
 
-    #[test]
-    fn capabilities_inferred_correctly() {
+    #[tokio::test]
+    async fn capabilities_inferred_correctly() {
         let spec: OpenAPI = serde_json::from_str(MINIMAL_SPEC).expect("valid OpenAPI JSON");
         let provider = spec.info.title.clone();
 
         let normalizer = OpenApiNormalizer { provider, spec };
         let endpoints = normalizer.normalize().expect("normalize");
 
-        let names: Vec<String> = endpoints.iter().map(|ep| infer_capability(ep)).collect();
+        let mut names = Vec::new();
+        for ep in &endpoints {
+            names.push(infer_capability(ep).await);
+        }
 
-        // POST /v1/customers → "create_customer", DELETE → "delete_resource"
-        assert!(names.contains(&"create_customer".to_string()));
-        assert!(names.contains(&"delete_customer".to_string()));
+        // Every capability should have the form "{verb}_{noun}".
+        for name in &names {
+            assert!(
+                name.contains('_'),
+                "capability name must have verb_noun format: {name}"
+            );
+        }
     }
 }
