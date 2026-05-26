@@ -1,8 +1,10 @@
-use crate::{health, providers, upload, AppState};
+use crate::handlers::capabilities;
+use crate::handlers::endpoints;
+use crate::{AppState, health, providers, upload};
 use axum::{
+    Router,
     extract::DefaultBodyLimit,
     routing::{get, post},
-    Router,
 };
 use std::sync::Arc;
 use tower_http::cors::CorsLayer;
@@ -15,6 +17,8 @@ pub fn app(state: AppState) -> Router {
             post(upload).layer(DefaultBodyLimit::max(50 * 1024 * 1024)),
         )
         .route("/providers", get(providers))
+        .route("/endpoints", get(endpoints::list_endpoints))
+        .route("/capabilities", get(capabilities::list_capabilities))
         .layer(CorsLayer::permissive())
         .with_state(Arc::new(state))
 }
