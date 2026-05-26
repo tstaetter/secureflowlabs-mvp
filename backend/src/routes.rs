@@ -1,5 +1,6 @@
 use crate::handlers::capabilities;
 use crate::handlers::endpoints;
+use crate::handlers::execution_plans;
 use crate::{AppState, health, providers, upload};
 use axum::{
     Router,
@@ -19,6 +20,10 @@ pub fn app(state: AppState) -> Router {
         .route("/providers", get(providers))
         .route("/endpoints", get(endpoints::list_endpoints))
         .route("/capabilities", get(capabilities::list_capabilities))
+        .route(
+            "/execution-plans",
+            get(execution_plans::list_execution_plans),
+        )
         .layer(CorsLayer::permissive())
         .with_state(Arc::new(state))
 }

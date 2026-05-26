@@ -8,7 +8,8 @@
 	const dropdownLinks = [
 		{ href: '/providers', label: 'Providers' },
 		{ href: '/endpoints', label: 'Endpoints' },
-		{ href: '/capabilities', label: 'Capabilities' }
+		{ href: '/capabilities', label: 'Capabilities' },
+		{ href: '/execution-plans', label: 'Execution Plans' }
 	];
 
 	let pathname = $derived($page.url.pathname);
